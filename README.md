@@ -1,4 +1,10 @@
-# eb-scraper
-This is a scraper made to never miss a notification on eb website
-libs used > selenium and telebot
-change CHAT_ID and BOT_TOKEN with your credentials
+# EB-SCRAPER
+Script created to receive updates on Telegram from the Brazilian army website (public contest).
+
+Libraries used:
+Selenium
+Telebot
+
+Python version: 3.9
+
+Change the CHANNEL_ID and BOT_TOKEN
