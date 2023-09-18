@@ -44,7 +44,7 @@ def check_site_change(url, bot):
                 print(f"O conteúdo da página {url} foi alterado:")
                 print(site_content)
                 bot.send_message(chat_id='1151298988',
-                                 text="O conteúdo da página principal foi alterado:\n" + site_content)
+                                 text="GIT: O conteúdo da página principal foi alterado:\n" + site_content)
                 previous_hash = current_hash
             else:
                 print("O conteúdo da página não foi alterado.")
