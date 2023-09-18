@@ -1,12 +1,13 @@
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as ec
-from selenium.common.exceptions import TimeoutException
 import hashlib
 import time
+
 import telebot
+from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as ec
+from selenium.webdriver.support.ui import WebDriverWait
 
 # URL do site que você deseja monitorar
 url = "https://2rm.eb.mil.br/servicomilitar/stt"
@@ -40,22 +41,21 @@ def check_site_change(url, bot):
         if site_content:
             current_hash = hashlib.sha256(site_content.encode()).hexdigest()
             if previous_hash != current_hash:
-                print("O conteúdo da página foi alterado:")
+                print(f"O conteúdo da página {url} foi alterado:")
                 print(site_content)
-                bot.send_message(chat_id='CHAT_ID', text="O conteúdo da página foi alterado:\n" + site_content)
+                bot.send_message(chat_id='1151298988',
+                                 text="O conteúdo da página principal foi alterado:\n" + site_content)
                 previous_hash = current_hash
             else:
                 print("O conteúdo da página não foi alterado.")
-        time.sleep(120)  # Verificar a cada 2 minutos
+        time.sleep(300)  # Verificar a cada 5 minutos
 
 
 # Configurar o token do bot do Telegram
-bot_token = 'BOT_TOKEN'
-
+bot_token = '6188235798:AAFokxFLAySkUhHWv2_uPFM-XUPWVQkfSVc'
 
 # Inicializar o bot do Telegram
 bot = telebot.TeleBot(bot_token)
-
 
 if __name__ == "__main__":
     check_site_change(url, bot)
