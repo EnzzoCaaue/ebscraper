@@ -1,6 +1,8 @@
 import hashlib
+import logging
 import time
 
+import requests
 import telebot
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
@@ -9,8 +11,18 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
 
-# URL do site que você deseja monitorar
-url = "https://2rm.eb.mil.br/servicomilitar/component/content/article?id=186"
+# Configuração de logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Lista de URLs a serem monitoradas
+URLS = [
+    "https://2rm.eb.mil.br/servicomilitar/index.php/component/content/article?id=276",
+    "https://2rm.eb.mil.br/servicomilitar/index.php/component/content/article?id=188",
+]
+
+BOT_TOKEN = '6188235798:AAFokxFLAySkUhHWv2_uPFM-XUPWVQkfSVc'
+DISCORD_WEBHOOK_URL = ('https://discord.com/api/webhooks/1153918778871136297'
+                       '/Q0miI6YqKVCvqUY2lzQBX0SYRhQtWXOX6xATW9ahP2NNaHdT61eb76IjoBe1QjdqCZPq')
 
 # Configurar o driver do Chrome
 chrome_options = Options()
@@ -27,38 +39,59 @@ def get_site_content(url):
         h2_element = driver.find_element(By.XPATH, "/html/body/div[2]/main/div/div/div[2]/section/div/div/p[1]")
         return h2_element.text.strip()
     except TimeoutException:
-        print("Timeout ao carregar a página.")
+        logging.error(f"Timeout ao carregar a página: {url}")
     except Exception as e:
-        print("Erro ao obter o conteúdo da página:", str(e))
+        logging.error(f"Erro ao obter o conteúdo da página {url}: {str(e)}")
     return None
 
 
+# Função para enviar mensagem para o webhook do Discord
+def send_discord_notification(message):
+    try:
+        payload = {'content': message}
+        response = requests.post(DISCORD_WEBHOOK_URL, json=payload)
+        if response.status_code == 200:
+            logging.info("Notificação enviada com sucesso para o Discord.")
+        elif response.status_code == 204:
+            pass  # Não faça nada se o código de status for 204 (No Content)
+        else:
+            logging.error(f"Falha ao enviar notificação para o Discord. Código de status: {response.status_code}")
+    except Exception as e:
+        logging.error(f"Erro ao enviar notificação para o Discord: {str(e)}")
+
+
 # Função para verificar a alteração no site
-def check_site_change(url, bot):
-    previous_hash = None
+def check_site_changes(urls, bot):
+    previous_hashes = {url: None for url in urls}
     while True:
-        site_content = get_site_content(url)
-        if site_content:
-            current_hash = hashlib.sha256(site_content.encode()).hexdigest()
-            if previous_hash != current_hash:
-                print(f"O conteúdo da página {url} foi alterado:")
-                print(site_content)
-                bot.send_message(chat_id='1151298988',
-                                 text="GIT: O conteúdo da página de informática foi alterado:\n" + site_content)
-                previous_hash = current_hash
-            else:
-                print("O conteúdo da página não foi alterado.")
-        time.sleep(300)  # Verificar a cada 2 minutos
+        for url in urls:
+            site_content = get_site_content(url)
+            if site_content:
+                current_hash = hashlib.sha256(site_content.encode()).hexdigest()
+                if previous_hashes[url] != current_hash:
+                    logging.info(f"O conteúdo da página {url} foi alterado:")
+                    logging.info(site_content)
+                    bot.send_message(chat_id='1151298988',
+                                     text=f"O conteúdo da página {url} foi alterado:\n{site_content}")
+                    time.sleep(2)
+                    send_discord_notification(f"O conteúdo da página {url} foi alterado:\n{site_content}")
+                    time.sleep(2)
+                    previous_hashes[url] = current_hash
+                else:
+                    logging.info(f"O conteúdo da página {url} não foi alterado.")
+        time.sleep(300)  # Verificar a cada 5 minutos
 
-
-# Configurar o token do bot do Telegram
-bot_token = '6188235798:AAFokxFLAySkUhHWv2_uPFM-XUPWVQkfSVc'
 
 # Inicializar o bot do Telegram
-bot = telebot.TeleBot(bot_token)
+bot = telebot.TeleBot(BOT_TOKEN)
 
 if __name__ == "__main__":
-    check_site_change(url, bot)
-
-# Fechar o driver do Chrome quando terminar
-driver.quit()
+    try:
+        check_site_changes(URLS, bot)
+    except KeyboardInterrupt:
+        logging.info("Monitoramento interrompido pelo usuário.")
+    except Exception as e:
+        logging.error(f"Ocorreu um erro inesperado: {str(e)}")
+    finally:
+        # Fechar o driver do Chrome quando terminar
+        driver.quit()
